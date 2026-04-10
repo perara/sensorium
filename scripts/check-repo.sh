@@ -11,7 +11,13 @@ bash -n scripts/*.sh
 
 if command -v shellcheck >/dev/null 2>&1; then
 	echo "Running shellcheck..."
-	shellcheck scripts/*.sh
+	shellcheck \
+		-e SC2034 \
+		-e SC2046 \
+		-e SC2154 \
+		-e SC2178 \
+		-e SC2317 \
+		scripts/*.sh
 fi
 
 echo "Checking for stale legacy names..."

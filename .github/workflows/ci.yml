@@ -20,8 +20,9 @@ jobs:
             g++ \
             git \
             libcamera-dev \
-            linux-headers-$(uname -r) \
+            linux-headers-generic \
             pkg-config \
+            ripgrep \
             shellcheck
 
       - name: Run repository checks
@@ -31,4 +32,8 @@ jobs:
         run: make tools
 
       - name: Build kernel module
-        run: make module
+        run: |
+          KDIR="$(ls -d /usr/src/linux-headers-*generic 2>/dev/null | grep -v -- '-common$' | sort | tail -n1)"
+          test -n "${KDIR}"
+          echo "Using KDIR=${KDIR}"
+          make module KDIR="${KDIR}"
