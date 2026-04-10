@@ -4,6 +4,30 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.1
+
+### Added
+
+- direct local-file and public-URL media examples in the README and testing
+  guide
+
+### Changed
+
+- consolidated identical IMX IPA files into a single canonical
+  `config/ipa/simple/imx-generic.yaml` source
+- updated the default demo source to a public sample MP4
+- hardened GitHub Actions package jobs for hosted container environments
+
+### Fixed
+
+- local and remote stream helpers now accept both local files and `http(s)` URLs
+- raw camera retrieval docs now use the tested `v4l2-ctl` capture flow instead
+  of an unreliable direct `ffmpeg` V4L2 Bayer input example
+- CI now installs the right runner dependencies and resolves a usable generic
+  kernel header tree for module builds
+- Alpine and Arch packaging workflows now tolerate container-user setup quirks
+  and artifact-first package output behavior
+
 ### Added
 
 - generic `sensorium` platform surface with a family/profile architecture
@@ -28,4 +52,3 @@ All notable changes to this project should be documented in this file.
 - processed smoke-capture instability in several long-tail IMX profiles by
   shifting defaults onto safer processed sizes
 - full-catalog validation misses uncovered during the first uninterrupted sweep
-
