@@ -1,0 +1,140 @@
+name: Packages
+
+on:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create source tarball
+        run: ./scripts/dist-source.sh
+
+      - name: Upload source tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensorium-source
+          path: dist/sensorium-*.tar.gz
+
+  deb:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Debian packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev fakeroot rsync
+
+      - name: Build Debian package
+        run: ./scripts/build-deb-package.sh
+
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensorium-deb
+          path: dist/deb/*.deb
+
+  alpine:
+    runs-on: ubuntu-24.04
+    container:
+      image: alpine:3.20
+    steps:
+      - name: Install build tools
+        run: apk add --no-cache alpine-sdk bash git rsync tar
+
+      - uses: actions/checkout@v4
+
+      - name: Render package templates and dist tarball
+        run: |
+          ./scripts/dist-source.sh
+          ./scripts/render-package-templates.sh
+
+      - name: Prepare abuild key
+        run: |
+          adduser -D builder
+          mkdir -p /home/builder/.abuild
+          chown -R builder:builder /home/builder /github/workspace
+          su builder -c 'abuild-keygen -a -n -q'
+
+      - name: Build Alpine package
+        run: |
+          ver="$(cat VERSION)"
+          mkdir -p /home/builder/pkgsrc
+          cp "dist/sensorium-${ver}.tar.gz" /home/builder/pkgsrc/
+          cp dist/pkgmeta/alpine/* /home/builder/pkgsrc/
+          chown -R builder:builder /home/builder/pkgsrc
+          su builder -c 'cd /home/builder/pkgsrc && abuild checksum && abuild -r'
+
+      - name: Upload Alpine package
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensorium-apk
+          path: /home/builder/packages/**/*.apk
+
+  arch:
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Install build tools
+        run: pacman -Syu --noconfirm git rsync tar
+
+      - uses: actions/checkout@v4
+
+      - name: Render package templates and dist tarball
+        run: |
+          ./scripts/dist-source.sh
+          ./scripts/render-package-templates.sh
+
+      - name: Build Arch package
+        run: |
+          useradd -m builder
+          ver="$(cat VERSION)"
+          mkdir -p /home/builder/pkgsrc
+          cp "dist/sensorium-${ver}.tar.gz" /home/builder/pkgsrc/
+          cp dist/pkgmeta/arch/* /home/builder/pkgsrc/
+          chown -R builder:builder /home/builder/pkgsrc /github/workspace
+          su builder -c 'cd /home/builder/pkgsrc && makepkg --noconfirm --nodeps -f'
+
+      - name: Upload Arch package
+        uses: actions/upload-artifact@v4
+        with:
+          name: sensorium-arch
+          path: /home/builder/pkgsrc/*.pkg.tar.*
+
+  publish-release-assets:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - source
+      - deb
+      - alpine
+      - arch
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Publish GitHub release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/sensorium-source/*
+            release-artifacts/sensorium-deb/*
+            release-artifacts/sensorium-apk/*
+            release-artifacts/sensorium-arch/*
+          generate_release_notes: true
