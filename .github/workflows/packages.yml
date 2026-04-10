@@ -10,6 +10,9 @@ on:
     types:
       - published
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 permissions:
   contents: write
 
@@ -112,7 +115,10 @@ jobs:
           cp "dist/sensorium-${ver}.tar.gz" /home/builder/pkgsrc/
           cp dist/pkgmeta/arch/* /home/builder/pkgsrc/
           chown -R builder:builder /home/builder/pkgsrc /github/workspace
-          su builder -c 'cd /home/builder/pkgsrc && makepkg --noconfirm --nodeps -f'
+          if ! su builder -c 'cd /home/builder/pkgsrc && makepkg --noconfirm --nodeps -f'; then
+            find /home/builder/pkgsrc -maxdepth 1 -type f -name "*.pkg.tar.*" -print
+            test -n "$(find /home/builder/pkgsrc -maxdepth 1 -type f -name "*.pkg.tar.*" -print -quit)"
+          fi
 
       - name: Upload Arch package
         uses: actions/upload-artifact@v4
