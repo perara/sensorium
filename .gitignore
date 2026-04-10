@@ -1,0 +1,40 @@
+.cache/
+dist/
+.env.kernel
+.env.remote
+
+# Kernel module build outputs
+*.o
+*.ko
+*.mod
+*.mod.c
+*.order
+*.symvers
+*.cmd
+*.a
+*.so
+*.dylib
+*.dll
+.tmp_versions/
+Module.markers
+modules.order
+Module.symvers
+kernel/.*.cmd
+kernel/*.o
+kernel/*.ko
+kernel/*.mod
+kernel/*.mod.c
+kernel/modules.order
+kernel/Module.symvers
+
+# Local helper tool binaries
+tools/libcamera-capture
+tools/libcamera-record
+tools/rgb24-to-rggb10
+
+# Local editor and build files
+compile_commands.json
+build/
+.DS_Store
+*.swp
+*.swo
