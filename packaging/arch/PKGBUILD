@@ -1,0 +1,49 @@
+pkgname=sensorium-dkms
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc="Virtual media-controller camera simulator delivered as a DKMS module"
+arch=('any')
+url="https://github.com/sensorium-project/sensorium"
+license=('GPL2')
+depends=('dkms')
+makedepends=('rsync')
+source=("sensorium-${pkgver}.tar.gz")
+sha256sums=('SKIP')
+install="${pkgname}.install"
+
+package() {
+	cd "${srcdir}/sensorium-${pkgver}"
+
+	install -d "${pkgdir}/usr/src/sensorium-${pkgver}"
+	rsync -a \
+		--exclude '.git' \
+		--exclude '.github' \
+		--exclude '.cache' \
+		--exclude '.env.remote' \
+		--exclude '.env.kernel' \
+		--exclude 'tools/libcamera-capture' \
+		--exclude 'tools/libcamera-record' \
+		--exclude 'tools/rgb24-to-rggb10' \
+		Makefile VERSION LICENSE README.md kernel packaging/dkms \
+		"${pkgdir}/usr/src/sensorium-${pkgver}/"
+
+	mv "${pkgdir}/usr/src/sensorium-${pkgver}/dkms/dkms.conf" \
+		"${pkgdir}/usr/src/sensorium-${pkgver}/dkms.conf"
+	rmdir "${pkgdir}/usr/src/sensorium-${pkgver}/dkms"
+
+	install -d "${pkgdir}/usr/share/sensorium"
+	rsync -a \
+		--exclude '.git' \
+		--exclude '.github' \
+		--exclude '.cache' \
+		--exclude '.env.remote' \
+		--exclude '.env.kernel' \
+		--exclude 'tools/libcamera-capture' \
+		--exclude 'tools/libcamera-record' \
+		--exclude 'tools/rgb24-to-rggb10' \
+		config docs scripts tools README.md CHANGELOG.md CONTRIBUTING.md \
+		"${pkgdir}/usr/share/sensorium/"
+
+	install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+	install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}
