@@ -4,6 +4,18 @@ All notable changes to this project should be documented in this file.
 
 ## Unreleased
 
+## 0.1.2
+
+### Changed
+
+- fixed GitHub release asset publishing so nested package artifacts are attached
+  correctly
+
+### Fixed
+
+- Alpine `.apk` artifacts now have a clean path to the GitHub Release page via
+  the release uploader workflow
+
 ## 0.1.1
 
 ### Added
@@ -27,6 +39,8 @@ All notable changes to this project should be documented in this file.
   kernel header tree for module builds
 - Alpine and Arch packaging workflows now tolerate container-user setup quirks
   and artifact-first package output behavior
+
+## 0.1.0
 
 ### Added
 
