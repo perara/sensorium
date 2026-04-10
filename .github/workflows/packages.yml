@@ -64,9 +64,9 @@ jobs:
 
       - name: Prepare abuild key
         run: |
-          addgroup -S abuild || true
-          adduser -D builder
-          adduser builder abuild
+          getent group abuild >/dev/null 2>&1 || addgroup -S abuild
+          id -u builder >/dev/null 2>&1 || adduser -D builder
+          adduser builder abuild >/dev/null 2>&1 || true
           mkdir -p /home/builder/.abuild
           chown -R builder:builder /home/builder /github/workspace
           su builder -c 'abuild-keygen -a -n -q'
@@ -106,7 +106,7 @@ jobs:
 
       - name: Build Arch package
         run: |
-          useradd -m builder
+          id -u builder >/dev/null 2>&1 || useradd -m builder
           ver="$(cat VERSION)"
           mkdir -p /home/builder/pkgsrc
           cp "dist/sensorium-${ver}.tar.gz" /home/builder/pkgsrc/
