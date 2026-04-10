@@ -144,8 +144,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release-artifacts/sensorium-source/*
-            release-artifacts/sensorium-deb/*
-            release-artifacts/sensorium-apk/*
-            release-artifacts/sensorium-arch/*
+            release-artifacts/sensorium-source/**
+            release-artifacts/sensorium-deb/**
+            release-artifacts/sensorium-apk/**
+            release-artifacts/sensorium-arch/**
           generate_release_notes: true
