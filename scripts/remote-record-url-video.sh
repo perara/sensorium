@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
-source_url="${1:-https://newbringer.ams3.cdn.digitaloceanspaces.com/csgo-stream.mp4}"
+source_url="${1:-https://filesamples.com/samples/video/mp4/sample_640x360.mp4}"
 capture_role="${CAPTURE_ROLE:-raw}"
 stream_fps="${STREAM_FPS:-10}"
 sensor_fps="${SENSOR_FPS:-}"

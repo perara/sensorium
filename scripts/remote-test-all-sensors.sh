@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
-source_url="${1:-https://newbringer.ams3.cdn.digitaloceanspaces.com/csgo-stream.mp4}"
+source_url="${1:-https://filesamples.com/samples/video/mp4/sample_640x360.mp4}"
 test_detect="${TEST_DETECT:-1}"
 test_raw="${TEST_RAW:-1}"
 test_processed="${TEST_PROCESSED:-1}"
@@ -131,4 +131,3 @@ if (( failed > 0 )); then
 	awk -F '\t' 'NR > 1 && $6 != "pass" { print $1 }' "${results_tsv}"
 	exit 1
 fi
-

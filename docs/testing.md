@@ -57,6 +57,57 @@ Streaming and recording:
 ./scripts/remote-record-url-video.sh
 ```
 
+## Direct local stream loop
+
+Feed an MP4 into the inject node:
+
+```bash
+ffmpeg \
+  -hide_banner \
+  -loglevel warning \
+  -stream_loop -1 \
+  -re \
+  -i input.mp4 \
+  -an -sn -dn \
+  -vf "fps=30,scale=1536:864:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1536:864:(ow-iw)/2:(oh-ih)/2:black,format=bgr0" \
+  -pix_fmt bgr0 \
+  -f rawvideo - | \
+v4l2-ctl \
+  -d /dev/video0 \
+  --set-fmt-video-out=width=1536,height=864,pixelformat=BGR4 \
+  --stream-out-mmap=4 \
+  --stream-from=-
+```
+
+Read the simulated camera back through libcamera:
+
+```bash
+source ./scripts/sensorium-common.sh
+sensorium_export_libcamera_runtime
+
+./tools/libcamera-record \
+  --role raw \
+  --width 1536 \
+  --height 864 \
+  --frames 150 \
+  --fps 30 \
+  --output output-rggb10.raw
+```
+
+Low-level raw capture from the camera node itself:
+
+```bash
+v4l2-ctl \
+  -d /dev/video1 \
+  --set-fmt-video=width=1536,height=864,pixelformat=RG10 \
+  --stream-mmap=4 \
+  --stream-count=150 \
+  --stream-to=output-rggb10.raw
+```
+
+See [README](../README.md) for the end-to-end round-trip examples, including
+MP4 re-encoding.
+
 ## Exhaustive profile validation
 
 Run the full profile sweep:
@@ -97,4 +148,3 @@ For a public rerun, prefer:
 1. `./scripts/remote-test-all-sensors.sh`
 2. inspect `results.tsv`
 3. rerun only the failing profiles after any fix
-

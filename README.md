@@ -168,6 +168,128 @@ Exhaustive catalog sweep:
 ./scripts/remote-test-all-sensors.sh
 ```
 
+## Direct `ffmpeg` examples
+
+The simulator has two camera-facing sides:
+
+- inject side: queue frames into the OUTPUT node, usually `/dev/video0`
+- capture side: read frames back from the CAPTURE node, usually `/dev/video1`
+
+You can confirm the current node numbers with:
+
+```bash
+v4l2-ctl --list-devices
+```
+
+### 1. Send an MP4 into the simulated camera
+
+This example loops an MP4, converts it to packed `BGR32`, and feeds it
+directly into the inject node:
+
+```bash
+ffmpeg \
+  -hide_banner \
+  -loglevel warning \
+  -stream_loop -1 \
+  -re \
+  -i input.mp4 \
+  -an -sn -dn \
+  -vf "fps=30,scale=1536:864:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1536:864:(ow-iw)/2:(oh-ih)/2:black,format=bgr0" \
+  -pix_fmt bgr0 \
+  -f rawvideo - | \
+v4l2-ctl \
+  -d /dev/video0 \
+  --set-fmt-video-out=width=1536,height=864,pixelformat=BGR4 \
+  --stream-out-mmap=4 \
+  --stream-from=-
+```
+
+The repo helper script does the same thing for a URL or local file:
+
+```bash
+./scripts/stream-url-to-sensorium.sh ./input.mp4
+```
+
+### 2. Retrieve that same stream as a camera
+
+#### Option A: pull raw frames from the CAPTURE node with `v4l2-ctl`
+
+The kernel capture node exposes raw Bayer as `RG10`. The most reliable
+low-level readback path is to dump frames from the capture node with
+`v4l2-ctl` and then hand that raw file to `ffmpeg`:
+
+```bash
+v4l2-ctl \
+  -d /dev/video1 \
+  --set-fmt-video=width=1536,height=864,pixelformat=RG10 \
+  --stream-mmap=4 \
+  --stream-count=150 \
+  --stream-to=output-rggb10.raw
+```
+
+If you want to turn that raw dump into an MP4 for inspection, convert it after
+capture:
+
+```bash
+ffmpeg \
+  -hide_banner \
+  -loglevel warning \
+  -f rawvideo \
+  -pixel_format bayer_rggb16le \
+  -video_size 1536x864 \
+  -framerate 30 \
+  -i output-rggb10.raw \
+  -c:v libx264 \
+  -pix_fmt yuv420p \
+  output.mp4
+```
+
+This path was validated directly against the live `sensorium` capture node.
+Some `ffmpeg` builds do not accept the raw Bayer V4L2 fourcc as a direct
+`-f v4l2` input format, which is why the docs prefer `v4l2-ctl` for the raw
+dump step.
+
+#### Option B: retrieve it through libcamera as a real camera client
+
+This is the most camera-shaped path. It asks libcamera for frames from the
+detected `sensorium` camera and writes the raw payload:
+
+```bash
+source ./scripts/sensorium-common.sh
+sensorium_export_libcamera_runtime
+
+./tools/libcamera-record \
+  --role raw \
+  --width 1536 \
+  --height 864 \
+  --frames 150 \
+  --fps 30 \
+  --output output-rggb10.raw
+```
+
+Then convert that raw output to MP4:
+
+```bash
+ffmpeg \
+  -hide_banner \
+  -loglevel warning \
+  -f rawvideo \
+  -pixel_format bayer_rggb16le \
+  -video_size 1536x864 \
+  -framerate 30 \
+  -i output-rggb10.raw \
+  -c:v libx264 \
+  -pix_fmt yuv420p \
+  output.mp4
+```
+
+If you want the repo to handle the full remote loop for you, including pulling
+the MP4 back locally, use:
+
+```bash
+./scripts/remote-record-url-video.sh ./input.mp4
+```
+
 ## Packaging
 
 Versioned release source:

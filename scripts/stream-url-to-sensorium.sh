@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source_url="${1:-https://newbringer.ams3.cdn.digitaloceanspaces.com/csgo-stream.mp4}"
+source_ref="${1:-https://filesamples.com/samples/video/mp4/sample_640x360.mp4}"
 width="${STREAM_WIDTH:-1536}"
 height="${STREAM_HEIGHT:-864}"
 fps="${STREAM_FPS:-10}"
@@ -18,21 +18,35 @@ need_cmd() {
 
 need_cmd ffmpeg
 need_cmd v4l2-ctl
-need_cmd curl
 mkdir -p "${cache_dir}"
 
-source_name="$(basename "${source_url%%\?*}")"
+source_name="$(basename "${source_ref%%\?*}")"
 if [[ -z "${source_name}" || "${source_name}" == "/" ]]; then
 	source_name="stream-source.mp4"
 fi
 
-source_path="${cache_dir}/${source_name}"
+source_path=""
+
+if [[ -f "${source_ref}" ]]; then
+	source_path="${source_ref}"
+elif [[ "${source_ref}" =~ ^https?:// ]]; then
+	need_cmd curl
+	source_path="${cache_dir}/${source_name}"
+
+	if [[ ! -s "${source_path}" ]]; then
+		echo "Downloading source video to ${source_path}"
+		curl --fail --location --silent --show-error \
+			--output "${source_path}.part" "${source_ref}"
+		mv "${source_path}.part" "${source_path}"
+	fi
+else
+	echo "Input must be an existing local file or an http(s) URL: ${source_ref}" >&2
+	exit 2
+fi
 
 if [[ ! -s "${source_path}" ]]; then
-	echo "Downloading source video to ${source_path}"
-	curl --fail --location --silent --show-error \
-		--output "${source_path}.part" "${source_url}"
-	mv "${source_path}.part" "${source_path}"
+	echo "Input file is empty or missing: ${source_path}" >&2
+	exit 2
 fi
 
 echo "Streaming ${source_path} into ${inject_device} at ${width}x${height} ${fps}fps"

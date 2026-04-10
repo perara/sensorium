@@ -2,7 +2,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source_url="${1:-https://newbringer.ams3.cdn.digitaloceanspaces.com/csgo-stream.mp4}"
+source_url="${1:-https://filesamples.com/samples/video/mp4/sample_640x360.mp4}"
 capture_timeout="${CAPTURE_TIMEOUT_SECONDS:-20}"
 capture_role="${CAPTURE_ROLE:-viewfinder}"
 capture_extension="${CAPTURE_EXTENSION:-bin}"

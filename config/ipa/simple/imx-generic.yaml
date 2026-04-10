@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: CC0-1.0
 %YAML 1.1
 ---
+# Canonical fallback tuning file for the current IMX family backend.
+# The repo installs this as <sensor>.yaml when no per-sensor override exists.
 version: 1
 algorithms:
   - BlackLevel:

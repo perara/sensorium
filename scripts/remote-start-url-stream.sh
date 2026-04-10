@@ -2,7 +2,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source_url="${1:-https://newbringer.ams3.cdn.digitaloceanspaces.com/csgo-stream.mp4}"
+source_ref="${1:-https://filesamples.com/samples/video/mp4/sample_640x360.mp4}"
 stream_width="${STREAM_WIDTH:-1536}"
 stream_height="${STREAM_HEIGHT:-864}"
 stream_fps="${STREAM_FPS:-10}"
@@ -13,7 +13,17 @@ source "${script_dir}/remote-common.sh"
 "${script_dir}/remote-sync.sh" >/dev/null
 remote_ssh_retry "cd '${remote_repo_dir}' && ./scripts/build-libcamera-capture.sh >/dev/null"
 
-printf -v source_url_q "%q" "${source_url}"
+remote_source_ref="${source_ref}"
+if [[ -f "${source_ref}" ]]; then
+	remote_ssh_retry "mkdir -p '${remote_repo_dir}/.cache/uploaded-media'"
+	remote_source_ref="${remote_repo_dir}/.cache/uploaded-media/$(basename "${source_ref}")"
+	remote_rsync_from_args=()
+	rsync -az \
+		-e "ssh -p ${remote_port} ${remote_ssh_opts[*]}" \
+		"${source_ref}" "${remote_target}:${remote_source_ref}"
+fi
+
+printf -v source_ref_q "%q" "${remote_source_ref}"
 printf -v stream_width_q "%q" "${stream_width}"
 printf -v stream_height_q "%q" "${stream_height}"
 printf -v stream_fps_q "%q" "${stream_fps}"
@@ -28,11 +38,14 @@ if [[ -f .cache/url-stream.pid ]]; then
 fi
 pkill -x ffmpeg || true
 pkill -x v4l2-ctl || true
-nohup env STREAM_WIDTH=${stream_width_q} STREAM_HEIGHT=${stream_height_q} STREAM_FPS=${stream_fps_q} bash ./scripts/stream-url-to-sensorium.sh ${source_url_q} > .cache/url-stream.log 2>&1 < /dev/null &
+nohup env STREAM_WIDTH=${stream_width_q} STREAM_HEIGHT=${stream_height_q} STREAM_FPS=${stream_fps_q} bash ./scripts/stream-url-to-sensorium.sh ${source_ref_q} > .cache/url-stream.log 2>&1 < /dev/null &
 echo \$! > .cache/url-stream.pid
-for _ in \$(seq 1 20); do
+for _ in \$(seq 1 40); do
 	if [[ -s .cache/url-stream.pid ]] && kill -0 "\$(cat .cache/url-stream.pid)" 2>/dev/null; then
-		exit 0
+		sleep 0.2
+		if kill -0 "\$(cat .cache/url-stream.pid)" 2>/dev/null; then
+			exit 0
+		fi
 	fi
 	sleep 0.2
 done

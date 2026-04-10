@@ -2,7 +2,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source_url="${1:-https://newbringer.ams3.cdn.digitaloceanspaces.com/csgo-stream.mp4}"
+source_url="${1:-https://filesamples.com/samples/video/mp4/sample_640x360.mp4}"
 fps_list="${FPS_LIST:-10 20 30}"
 
 for fps in ${fps_list}; do

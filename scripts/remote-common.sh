@@ -103,7 +103,8 @@ remote_rsync_from_retry() {
 }
 
 remote_install_ipa_config() {
-	local local_profile_yaml="${sensorium_repo_root}/config/ipa/simple/${sensorium_sensor}.yaml"
+	local local_profile_yaml="${sensorium_repo_root}/config/ipa/simple/overrides/${sensorium_sensor}.yaml"
+	local local_generic_yaml="${sensorium_repo_root}/config/ipa/simple/imx-generic.yaml"
 	local remote_profile_yaml="${sensorium_libcamera_prefix}/share/libcamera/ipa/simple/${sensorium_sensor}.yaml"
 	local skip_sync="${SENSORIUM_SKIP_IPA_SYNC:-0}"
 
@@ -114,15 +115,18 @@ remote_install_ipa_config() {
 
 	remote_ssh_retry "mkdir -p '${sensorium_libcamera_prefix}/share/libcamera/ipa/simple'"
 
+	if [[ ! -f "${local_generic_yaml}" ]]; then
+		echo "Missing generic IMX IPA config: ${local_generic_yaml}" >&2
+		exit 2
+	fi
+
+	if [[ "${skip_sync}" != "1" ]]; then
+		remote_rsync_to_retry >/dev/null
+	fi
+
 	if [[ -f "${local_profile_yaml}" ]]; then
-		if [[ "${skip_sync}" != "1" ]]; then
-			remote_rsync_to_retry >/dev/null
-		fi
-		remote_ssh_retry "install -m 0644 '${remote_repo_dir}/config/ipa/simple/${sensorium_sensor}.yaml' '${remote_profile_yaml}'"
+		remote_ssh_retry "install -m 0644 '${remote_repo_dir}/config/ipa/simple/overrides/${sensorium_sensor}.yaml' '${remote_profile_yaml}'"
 	else
-		if [[ "${skip_sync}" != "1" ]]; then
-			remote_rsync_to_retry >/dev/null
-		fi
 		remote_ssh_retry "install -m 0644 '${remote_repo_dir}/config/ipa/simple/imx-generic.yaml' '${remote_profile_yaml}'"
 	fi
 }
