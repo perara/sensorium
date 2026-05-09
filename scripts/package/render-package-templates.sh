@@ -20,10 +20,10 @@ sensorium_render_template \
 	"${sensorium_repo_root}/packaging/alpine/APKBUILD" \
 	"${render_dir}/alpine/APKBUILD"
 sensorium_render_template \
-	"${sensorium_repo_root}/packaging/alpine/sensorium-dkms.post-install" \
-	"${render_dir}/alpine/sensorium-dkms.post-install"
+	"${sensorium_repo_root}/packaging/alpine/sensorium-akms.post-install" \
+	"${render_dir}/alpine/sensorium-akms.post-install"
 sensorium_render_template \
-	"${sensorium_repo_root}/packaging/alpine/sensorium-dkms.pre-deinstall" \
-	"${render_dir}/alpine/sensorium-dkms.pre-deinstall"
+	"${sensorium_repo_root}/packaging/alpine/sensorium-akms.pre-deinstall" \
+	"${render_dir}/alpine/sensorium-akms.pre-deinstall"
 
 echo "${render_dir}"

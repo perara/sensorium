@@ -2883,9 +2883,11 @@ class PackagingMetadataTests(unittest.TestCase):
 
     def test_alpine_package_ships_models_and_runtime_python_deps(self):
         apkbuild = (REPO_ROOT / "packaging" / "alpine" / "APKBUILD").read_text()
-        for dep in ("bash", "dkms", "gcc", "make", "python3", "py3-pyserial", "py3-yaml"):
+        for dep in ("akms", "bash", "python3", "py3-pyserial", "py3-yaml"):
             self.assertIn(dep, apkbuild)
         self.assertIn('makedepends="python3 rsync"', apkbuild)
+        self.assertIn("AKMBUILD", apkbuild)
+        self.assertIn("built_modules=\"sensorium.ko\"", apkbuild)
         self.assertIn("config docs models src tools", apkbuild)
         self.assertIn("rsync -a scripts/runtime", apkbuild)
         self.assertIn("scripts/lib/sensorium-common.sh", apkbuild)

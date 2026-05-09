@@ -61,7 +61,9 @@ jobs:
       image: alpine:3.20
     steps:
       - name: Install build tools
-        run: apk add --no-cache alpine-sdk bash git rsync tar
+        run: |
+          apk update
+          apk add alpine-sdk bash git rsync tar
 
       - uses: actions/checkout@v4
 
@@ -76,6 +78,7 @@ jobs:
           mkdir -p /home/builder/.abuild
           chown -R builder:builder /home/builder
           su builder -c 'abuild-keygen -a -n -q'
+          cp /home/builder/.abuild/*.rsa.pub /etc/apk/keys/
 
       - name: Build Alpine package
         run: |
@@ -102,7 +105,7 @@ jobs:
       image: archlinux:base-devel
     steps:
       - name: Install build tools
-        run: pacman -Syu --noconfirm git rsync tar
+        run: pacman -Syu --noconfirm git python rsync tar
 
       - uses: actions/checkout@v4
 
