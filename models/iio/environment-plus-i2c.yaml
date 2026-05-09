@@ -1,0 +1,21 @@
+name: env-plus-i2c
+adapter: iio
+transport: i2c
+timing:
+  update_interval_ms: 1000
+faults:
+  mode: none
+registers: {}
+config:
+  transport:
+    device_name: i2c-1
+    address: 0x76
+  iio:
+    profile: environment-plus
+    temperature_millic: 24500
+    pressure_pascal: 100825
+    humidity_millipercent: 48250
+    temperature_step_millic: 300
+    pressure_step_pascal: 150
+    humidity_step_millipercent: 425
+    temperature_thresh_rising_millic: 25000

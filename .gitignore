@@ -35,6 +35,9 @@ tools/rgb24-to-rggb10
 # Local editor and build files
 compile_commands.json
 build/
+*.egg-info/
 .DS_Store
 *.swp
 *.swo
+__pycache__/
+*.pyc

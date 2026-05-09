@@ -6,8 +6,8 @@ pkgdesc="Virtual media-controller camera simulator delivered as a DKMS module"
 url="https://github.com/perara/sensorium"
 arch="noarch"
 license="GPL-2.0-only"
-depends="bash"
-makedepends="rsync"
+depends="bash dkms gcc make python3 py3-pyserial py3-yaml"
+makedepends="python3 rsync"
 install="$pkgname.post-install $pkgname.pre-deinstall"
 source="sensorium-$pkgver.tar.gz"
 builddir="$srcdir/sensorium-$pkgver"
@@ -43,8 +43,30 @@ package() {
 		--exclude 'tools/libcamera-capture' \
 		--exclude 'tools/libcamera-record' \
 		--exclude 'tools/rgb24-to-rggb10' \
-		config docs scripts tools README.md CHANGELOG.md CONTRIBUTING.md \
+		config docs models src tools VERSION pyproject.toml README.md CHANGELOG.md CONTRIBUTING.md \
 		"$pkgdir/usr/share/sensorium/"
+	install -d "$pkgdir/usr/share/sensorium/scripts/lib"
+	rsync -a scripts/runtime "$pkgdir/usr/share/sensorium/scripts/"
+	install -m 0644 scripts/lib/sensorium-common.sh \
+		"$pkgdir/usr/share/sensorium/scripts/lib/sensorium-common.sh"
+	python_sitelib="$(
+		python3 - <<'PY'
+import sysconfig
+print(sysconfig.get_paths()["purelib"])
+PY
+	)"
+	install -Dm644 packaging/python/sensorium-runtime.pth \
+		"$pkgdir$python_sitelib/sensorium-runtime.pth"
+	install -d "$pkgdir/usr/bin"
+	ln -s /usr/share/sensorium/scripts/runtime/sensoriumctl \
+		"$pkgdir/usr/bin/sensoriumctl"
+	ln -s /usr/share/sensorium/scripts/runtime/sensoriumd \
+		"$pkgdir/usr/bin/sensoriumd"
+
+	install -Dm644 packaging/systemd/sensoriumd.service \
+		"$pkgdir/usr/share/sensorium/packaging/systemd/sensoriumd.service"
+	install -Dm644 packaging/systemd/sensoriumd.env.example \
+		"$pkgdir/usr/share/doc/$pkgname/sensoriumd.env.example"
 
 	install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"

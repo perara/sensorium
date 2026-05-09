@@ -1,0 +1,12 @@
+name: camera-imx477
+adapter: camera
+transport: virtual
+timing:
+  repeat_last_frame: true
+faults:
+  mode: none
+registers: {}
+config:
+  camera:
+    family: imx
+    sensor: imx477

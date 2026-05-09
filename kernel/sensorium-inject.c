@@ -94,8 +94,10 @@ static const struct vb2_ops sensorium_inject_qops = {
 	.buf_queue = sensorium_inject_buf_queue,
 	.start_streaming = sensorium_inject_start_streaming,
 	.stop_streaming = sensorium_inject_stop_streaming,
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 20, 0)
 	.wait_prepare = vb2_ops_wait_prepare,
 	.wait_finish = vb2_ops_wait_finish,
+#endif
 };
 
 static int sensorium_querycap(struct file *file, void *priv,
@@ -143,6 +145,9 @@ static int sensorium_inject_enum_fmt(struct file *file, void *priv,
 static int sensorium_inject_enum_framesizes(struct file *file, void *priv,
 					     struct v4l2_frmsizeenum *fsize)
 {
+	struct sensorium_node *node = video_drvdata(file);
+	const struct sensorium_profile *profile = node->sim->profile;
+
 	switch (fsize->pixel_format) {
 	case V4L2_PIX_FMT_BGR32:
 	case V4L2_PIX_FMT_RGB32:
@@ -154,12 +159,12 @@ static int sensorium_inject_enum_framesizes(struct file *file, void *priv,
 		return -EINVAL;
 	}
 
-	if (fsize->index >= sensorium_num_modes)
+	if (fsize->index >= profile->num_modes)
 		return -EINVAL;
 
 	fsize->type = V4L2_FRMSIZE_TYPE_DISCRETE;
-	fsize->discrete.width = sensorium_modes[fsize->index].width;
-	fsize->discrete.height = sensorium_modes[fsize->index].height;
+	fsize->discrete.width = profile->modes[fsize->index].width;
+	fsize->discrete.height = profile->modes[fsize->index].height;
 
 	return 0;
 }
@@ -167,6 +172,8 @@ static int sensorium_inject_enum_framesizes(struct file *file, void *priv,
 static int sensorium_inject_enum_frameintervals(struct file *file, void *priv,
 						 struct v4l2_frmivalenum *fival)
 {
+	struct sensorium_node *node = video_drvdata(file);
+	const struct sensorium_profile *profile = node->sim->profile;
 	const struct sensorium_mode *mode;
 
 	switch (fival->pixel_format) {
@@ -180,10 +187,10 @@ static int sensorium_inject_enum_frameintervals(struct file *file, void *priv,
 		return -EINVAL;
 	}
 
-	if (fival->index >= sensorium_num_modes)
+	if (fival->index >= profile->num_modes)
 		return -EINVAL;
 
-	mode = &sensorium_modes[fival->index];
+	mode = &profile->modes[fival->index];
 	if (fival->width != mode->width || fival->height != mode->height)
 		return -EINVAL;
 
@@ -211,7 +218,7 @@ static int sensorium_inject_s_fmt(struct file *file, void *priv,
 	const struct sensorium_mode *mode;
 	int ret = 0;
 
-	mode = sensorium_find_mode(f->fmt.pix.width, f->fmt.pix.height);
+	mode = sensorium_find_mode(sim, f->fmt.pix.width, f->fmt.pix.height);
 	if (f->fmt.pix.pixelformat != V4L2_PIX_FMT_BGR32 &&
 	    f->fmt.pix.pixelformat != V4L2_PIX_FMT_RGB32 &&
 	    f->fmt.pix.pixelformat != V4L2_PIX_FMT_RGB24 &&
@@ -240,9 +247,10 @@ static int sensorium_inject_s_fmt(struct file *file, void *priv,
 static int sensorium_inject_try_fmt(struct file *file, void *priv,
 				     struct v4l2_format *f)
 {
+	struct sensorium_node *node = video_drvdata(file);
 	const struct sensorium_mode *mode;
 
-	mode = sensorium_find_mode(f->fmt.pix.width, f->fmt.pix.height);
+	mode = sensorium_find_mode(node->sim, f->fmt.pix.width, f->fmt.pix.height);
 	if (f->fmt.pix.pixelformat != V4L2_PIX_FMT_BGR32 &&
 	    f->fmt.pix.pixelformat != V4L2_PIX_FMT_RGB32 &&
 	    f->fmt.pix.pixelformat != V4L2_PIX_FMT_RGB24 &&

@@ -1,0 +1,20 @@
+name: env-plus-uart
+adapter: iio
+transport: uart
+timing:
+  update_interval_ms: 1000
+faults:
+  mode: none
+registers: {}
+config:
+  transport:
+    device_name: ttyAMA0
+  iio:
+    profile: environment-plus
+    temperature_millic: 23100
+    pressure_pascal: 100420
+    humidity_millipercent: 47200
+    temperature_step_millic: 180
+    pressure_step_pascal: 8
+    humidity_step_millipercent: 420
+    temperature_thresh_rising_millic: 24500

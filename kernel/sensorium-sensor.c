@@ -6,9 +6,10 @@ static const char * const sensorium_test_pattern_menu[] = {
 	"Solid Color",
 };
 
-static void sensorium_sensor_fill_sink_fmt(struct v4l2_mbus_framefmt *fmt)
+static void sensorium_sensor_fill_sink_fmt(struct sensorium_device *sim,
+					   struct v4l2_mbus_framefmt *fmt)
 {
-	sensorium_fill_mbus_format(&sensorium_modes[0], fmt);
+	sensorium_fill_mbus_format(sensorium_default_mode(sim), fmt);
 }
 
 static void sensorium_sensor_fill_selection(struct v4l2_rect *rect,
@@ -46,6 +47,9 @@ static int sensorium_sensor_enum_frame_size(struct v4l2_subdev *sd,
 					     struct v4l2_subdev_state *state,
 					     struct v4l2_subdev_frame_size_enum *fse)
 {
+	struct sensorium_sensor *sensor = to_sensorium_sensor(sd);
+	struct sensorium_device *sim = sensor->sim;
+
 	if (fse->pad >= SENSORIUM_SENSOR_PAD_COUNT)
 		return -EINVAL;
 
@@ -56,20 +60,20 @@ static int sensorium_sensor_enum_frame_size(struct v4l2_subdev *sd,
 		if (fse->index > 0)
 			return -EINVAL;
 
-		fse->min_width = sensorium_modes[0].width;
-		fse->max_width = sensorium_modes[0].width;
-		fse->min_height = sensorium_modes[0].height;
-		fse->max_height = sensorium_modes[0].height;
+		fse->min_width = sim->profile->modes[0].width;
+		fse->max_width = sim->profile->modes[0].width;
+		fse->min_height = sim->profile->modes[0].height;
+		fse->max_height = sim->profile->modes[0].height;
 		return 0;
 	}
 
-	if (fse->index >= sensorium_num_modes)
+	if (fse->index >= sim->profile->num_modes)
 		return -EINVAL;
 
-	fse->min_width = sensorium_modes[fse->index].width;
-	fse->max_width = sensorium_modes[fse->index].width;
-	fse->min_height = sensorium_modes[fse->index].height;
-	fse->max_height = sensorium_modes[fse->index].height;
+	fse->min_width = sim->profile->modes[fse->index].width;
+	fse->max_width = sim->profile->modes[fse->index].width;
+	fse->min_height = sim->profile->modes[fse->index].height;
+	fse->max_height = sim->profile->modes[fse->index].height;
 
 	return 0;
 }
@@ -84,7 +88,7 @@ static int sensorium_sensor_get_fmt(struct v4l2_subdev *sd,
 		return -EINVAL;
 
 	if (fmt->pad == SENSORIUM_SENSOR_PAD_SINK) {
-		sensorium_sensor_fill_sink_fmt(&fmt->format);
+		sensorium_sensor_fill_sink_fmt(sensor->sim, &fmt->format);
 		return 0;
 	}
 
@@ -96,8 +100,8 @@ static int sensorium_sensor_get_selection(struct v4l2_subdev *sd,
 					   struct v4l2_subdev_state *state,
 					   struct v4l2_subdev_selection *sel)
 {
-	const struct sensorium_mode *pixel_array = &sensorium_modes[0];
 	struct sensorium_sensor *sensor = to_sensorium_sensor(sd);
+	const struct sensorium_mode *pixel_array = sensorium_default_mode(sensor->sim);
 	struct v4l2_rect crop = {
 		.left = 0,
 		.top = 0,
@@ -173,14 +177,14 @@ static int sensorium_sensor_set_fmt(struct v4l2_subdev *sd,
 	if (fmt->pad >= SENSORIUM_SENSOR_PAD_COUNT)
 		return -EINVAL;
 
-	sim = container_of(sensor, struct sensorium_device, sensor);
+	sim = sensor->sim;
 
 	if (fmt->pad == SENSORIUM_SENSOR_PAD_SINK) {
-		sensorium_sensor_fill_sink_fmt(&fmt->format);
+		sensorium_sensor_fill_sink_fmt(sim, &fmt->format);
 		return 0;
 	}
 
-	mode = sensorium_find_mode(fmt->format.width, fmt->format.height);
+	mode = sensorium_find_mode(sim, fmt->format.width, fmt->format.height);
 	sensorium_fill_mbus_format(mode, &fmt->format);
 
 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
@@ -202,9 +206,7 @@ static int sensorium_sensor_set_fmt(struct v4l2_subdev *sd,
 static int sensorium_sensor_s_stream(struct v4l2_subdev *sd, int enable)
 {
 	struct sensorium_sensor *sensor = to_sensorium_sensor(sd);
-	struct sensorium_device *sim = container_of(sensor,
-						     struct sensorium_device,
-						     sensor);
+	struct sensorium_device *sim = sensor->sim;
 
 	mutex_lock(&sim->lock);
 	sensor->streaming = enable;
@@ -224,8 +226,7 @@ static int sensorium_s_ctrl(struct v4l2_ctrl *ctrl)
 {
 	struct sensorium_sensor *sensor =
 		container_of(ctrl->handler, struct sensorium_sensor, ctrl_handler);
-	struct sensorium_device *sim =
-		container_of(sensor, struct sensorium_device, sensor);
+	struct sensorium_device *sim = sensor->sim;
 
 	switch (ctrl->id) {
 	case V4L2_CID_CAMERA_ORIENTATION:
@@ -283,6 +284,7 @@ int sensorium_sensor_register(struct sensorium_device *sim)
 	int ret;
 	u32 exposure_max;
 
+	sensor->sim = sim;
 	v4l2_subdev_init(&sensor->sd, &sensorium_sensor_ops);
 	strscpy(sensor->sd.name, sim->profile->name, sizeof(sensor->sd.name));
 	sensor->sd.flags = V4L2_SUBDEV_FL_HAS_DEVNODE;
@@ -400,7 +402,7 @@ int sensorium_sensor_register(struct sensorium_device *sim)
 
 	sensor->sd.ctrl_handler = &sensor->ctrl_handler;
 	mutex_lock(&sim->lock);
-	sensorium_sensor_apply_mode(sim, sensorium_default_mode());
+	sensorium_sensor_apply_mode(sim, sensorium_default_mode(sim));
 	mutex_unlock(&sim->lock);
 
 	ret = v4l2_device_register_subdev(&sim->v4l2_dev, &sensor->sd);

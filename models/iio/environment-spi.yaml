@@ -1,0 +1,17 @@
+name: env-spi
+adapter: iio
+transport: spi
+timing:
+  update_interval_ms: 1000
+faults:
+  mode: none
+registers: {}
+config:
+  transport:
+    device_name: spidev0.0
+  iio:
+    profile: environment-basic
+    temperature_millic: 21500
+    pressure_pascal: 101325
+    temperature_step_millic: 250
+    pressure_step_pascal: 120

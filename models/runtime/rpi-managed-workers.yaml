@@ -1,0 +1,63 @@
+name: rpi-managed-workers
+schema_version: 2
+adapter: runtime
+runtime:
+  buses:
+    - id: i2c-main
+      transport: i2c
+      name: i2c-1
+    - id: spi-main
+      transport: spi
+      name: spi0
+    - id: uart-main
+      transport: uart
+      name: uart0
+  devices:
+    - id: eeprom-i2c
+      bus: i2c-main
+      transport: i2c
+      address: 0x76
+      backend:
+        kind: controller
+        worker:
+          command:
+            - python3
+            - scripts/runtime/runtime-controller-eeprom.py
+          restart_limit: 2
+          restart_backoff_ms: 100
+    - id: flash-spi
+      bus: spi-main
+      transport: spi
+      chip_select: 0
+      device_name: spidev0.0
+      settings:
+        mode: 0
+        bits_per_word: 8
+        max_speed_hz: 500000
+      backend:
+        kind: controller
+        worker:
+          command:
+            - python3
+            - scripts/runtime/runtime-controller-spi-flash.py
+          restart_limit: 2
+          restart_backoff_ms: 100
+    - id: console-uart
+      bus: uart-main
+      transport: uart
+      port_name: ttyAMA0
+      settings:
+        baud_rate: 115200
+        data_bits: 8
+        parity: none
+        stop_bits: 1
+        xonxoff: false
+        rtscts: false
+      backend:
+        kind: controller
+        worker:
+          command:
+            - python3
+            - scripts/runtime/runtime-controller-uart-mcu.py
+          restart_limit: 2
+          restart_backoff_ms: 100

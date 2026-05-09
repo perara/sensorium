@@ -4,34 +4,48 @@
   gather_facts: false
   vars:
     remote_repo_dir: "{{ lookup('env', 'REMOTE_REPO_DIR') | default('/opt/sensorium', true) }}"
+    libcamera_apt_release: "{{ lookup('env', 'SENSORIUM_LIBCAMERA_APT_RELEASE') | default('', true) }}"
+    provision_profile: "{{ lookup('env', 'SENSORIUM_PROVISION_PROFILE') | default('full', true) }}"
+    apt_nochange_markers:
+      - "0 upgraded, 0 newly installed, 0 to remove"
+      - "already the newest version"
     base_packages:
       - bc
+      - curl
+      - git
+      - i2c-tools
+      - kmod
+      - libelf-dev
+      - libssl-dev
+      - make
+      - pkg-config
+      - python3
+      - python3-apt
+      - python3-serial
+      - python3-yaml
+      - rsync
+      - sudo
+      - v4l-utils
+    lean_toolchain_packages:
+      - gcc
+      - g++
+      - libc6-dev
+    full_only_packages:
       - bison
       - build-essential
       - ccache
       - cpio
-      - curl
       - dwarves
       - ffmpeg
       - flex
-      - git
-      - kmod
+      - meson
+      - ninja-build
+      - python3-pip
+    libcamera_packages:
       - libcamera-dev
       - libcamera-ipa
       - libcamera-tools
       - libcamera-v4l2
-      - libelf-dev
-      - libssl-dev
-      - make
-      - meson
-      - ninja-build
-      - pkg-config
-      - python3
-      - python3-apt
-      - python3-pip
-      - rsync
-      - sudo
-      - v4l-utils
 
   pre_tasks:
     - name: Ensure Python is present for Ansible
@@ -42,48 +56,267 @@
       setup:
 
   tasks:
+    - name: Install apt network hardening for cloud guests
+      copy:
+        dest: /etc/apt/apt.conf.d/99sensorium-network
+        mode: "0644"
+        content: |
+          Acquire::Retries "5";
+          Acquire::ForceIPv4 "true";
+          Acquire::http::Timeout "30";
+          Acquire::https::Timeout "30";
+
+    - name: Stop background apt jobs that can block first-boot provisioning
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+      loop:
+        - apt-daily.service
+        - apt-daily-upgrade.service
+      failed_when: false
+
+    - name: Wait for dpkg and apt locks to clear
+      shell: |
+        set -euo pipefail
+        timeout=180
+        while (( timeout > 0 )); do
+          if ! fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1; then
+            exit 0
+          fi
+          sleep 2
+          timeout=$((timeout - 2))
+        done
+        echo "Timed out waiting for apt/dpkg locks" >&2
+        exit 1
+      args:
+        executable: /bin/bash
+      changed_when: false
+
     - name: Refresh apt cache
       apt:
         update_cache: true
         cache_valid_time: 3600
+        install_recommends: false
+      environment:
+        APT_LISTCHANGES_FRONTEND: none
+
+    - name: Add Debian sid apt source for newer libcamera builds
+      copy:
+        dest: /etc/apt/sources.list.d/sensorium-libcamera-sid.list
+        mode: "0644"
+        content: |
+          deb http://deb.debian.org/debian sid main
+      when:
+        - ansible_facts.distribution == "Debian"
+        - libcamera_apt_release == "sid"
+
+    - name: Refresh apt cache after adding sid source
+      apt:
+        update_cache: true
+        install_recommends: false
+      when:
+        - ansible_facts.distribution == "Debian"
+        - libcamera_apt_release == "sid"
+      environment:
+        APT_LISTCHANGES_FRONTEND: none
 
     - name: Install base packages
-      apt:
-        name: "{{ base_packages }}"
-        state: present
+      shell: >-
+        apt-get install -y -o APT::Install-Recommends=no
+        {{
+          (
+            base_packages
+            + (lean_toolchain_packages if provision_profile != 'full' else [])
+            + (full_only_packages if provision_profile == 'full' else [])
+          ) | map('quote') | join(' ')
+        }}
+      args:
+        executable: /bin/bash
+      register: base_install
+      retries: 2
+      delay: 5
+      until: base_install.rc == 0
+      changed_when: >-
+        apt_nochange_markers
+        | select('in', (base_install.stdout | default('')) ~ '\n' ~ (base_install.stderr | default('')))
+        | list
+        | length == 0
       environment:
         DEBIAN_FRONTEND: noninteractive
         NEEDRESTART_MODE: a
+        APT_LISTCHANGES_FRONTEND: none
 
-    - name: Install matching kernel headers
-      apt:
-        name:
-          - "linux-headers-{{ ansible_facts.kernel }}"
-          - "linux-modules-extra-{{ ansible_facts.kernel }}"
-        state: present
+    - name: Reset SSH connection after base package changes
+      meta: reset_connection
+
+    - name: Install libcamera packages
+      shell: >-
+        apt-get install -y -o APT::Install-Recommends=no
+        {% if libcamera_apt_release | length > 0 %}-t {{ libcamera_apt_release | quote }}{% endif %}
+        {{ libcamera_packages | map('quote') | join(' ') }}
+      args:
+        executable: /bin/bash
+      register: libcamera_install
+      retries: 2
+      delay: 5
+      until: libcamera_install.rc == 0
+      changed_when: >-
+        apt_nochange_markers
+        | select('in', (libcamera_install.stdout | default('')) ~ '\n' ~ (libcamera_install.stderr | default('')))
+        | list
+        | length == 0
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+        NEEDRESTART_MODE: a
+        APT_LISTCHANGES_FRONTEND: none
+
+    - name: Reset SSH connection after libcamera package changes
+      meta: reset_connection
+
+    - name: Install matching Ubuntu kernel headers
+      shell: >-
+        apt-get install -y -o APT::Install-Recommends=no
+        {{ ('linux-headers-' ~ ansible_facts.kernel) | quote }}
+        {{ ('linux-modules-extra-' ~ ansible_facts.kernel) | quote }}
+      args:
+        executable: /bin/bash
       register: matching_headers
       ignore_errors: true
+      changed_when: >-
+        apt_nochange_markers
+        | select('in', (matching_headers.stdout | default('')) ~ '\n' ~ (matching_headers.stderr | default('')))
+        | list
+        | length == 0
+      when:
+        - ansible_facts.distribution == "Ubuntu"
+        - provision_profile == "full" or ('-cloud-' not in ansible_facts.kernel)
       environment:
         DEBIAN_FRONTEND: noninteractive
         NEEDRESTART_MODE: a
+        APT_LISTCHANGES_FRONTEND: none
 
-    - name: Install generic kernel headers fallback
-      apt:
-        name:
-          - linux-headers-generic
-          - linux-image-generic
-          - linux-modules-extra-generic
-        state: present
-      when: matching_headers is failed
+    - name: Install matching Debian kernel headers
+      shell: >-
+        apt-get install -y -o APT::Install-Recommends=no
+        {{ ('linux-headers-' ~ ansible_facts.kernel) | quote }}
+      args:
+        executable: /bin/bash
+      register: matching_headers
+      ignore_errors: true
+      changed_when: >-
+        apt_nochange_markers
+        | select('in', (matching_headers.stdout | default('')) ~ '\n' ~ (matching_headers.stderr | default('')))
+        | list
+        | length == 0
+      when:
+        - ansible_facts.distribution == "Debian"
+        - provision_profile == "full" or ('-cloud-amd64' not in ansible_facts.kernel)
       environment:
         DEBIAN_FRONTEND: noninteractive
         NEEDRESTART_MODE: a
+        APT_LISTCHANGES_FRONTEND: none
+
+    - name: Install Debian media-capable kernel alongside cloud kernel
+      shell: >-
+        apt-get install -y -o APT::Install-Recommends=no linux-headers-amd64 linux-image-amd64
+      args:
+        executable: /bin/bash
+      register: debian_media_kernel_install
+      changed_when: >-
+        apt_nochange_markers
+        | select('in', (debian_media_kernel_install.stdout | default('')) ~ '\n' ~ (debian_media_kernel_install.stderr | default('')))
+        | list
+        | length == 0
+      when:
+        - ansible_facts.distribution == "Debian"
+        - provision_profile == "full"
+        - "'-cloud-amd64' in ansible_facts.kernel"
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+        NEEDRESTART_MODE: a
+        APT_LISTCHANGES_FRONTEND: none
+
+    - name: Install Ubuntu generic kernel headers fallback
+      shell: >-
+        apt-get install -y -o APT::Install-Recommends=no
+        linux-headers-generic linux-image-generic linux-modules-extra-generic
+      args:
+        executable: /bin/bash
+      register: ubuntu_generic_kernel_install
+      changed_when: >-
+        apt_nochange_markers
+        | select('in', (ubuntu_generic_kernel_install.stdout | default('')) ~ '\n' ~ (ubuntu_generic_kernel_install.stderr | default('')))
+        | list
+        | length == 0
+      when:
+        - matching_headers is skipped or matching_headers is failed
+        - ansible_facts.distribution == "Ubuntu"
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+        NEEDRESTART_MODE: a
+        APT_LISTCHANGES_FRONTEND: none
+
+    - name: Install Debian generic kernel headers fallback
+      shell: >-
+        apt-get install -y -o APT::Install-Recommends=no linux-headers-amd64 linux-image-amd64
+      args:
+        executable: /bin/bash
+      register: debian_generic_kernel_install
+      changed_when: >-
+        apt_nochange_markers
+        | select('in', (debian_generic_kernel_install.stdout | default('')) ~ '\n' ~ (debian_generic_kernel_install.stderr | default('')))
+        | list
+        | length == 0
+      when:
+        - matching_headers is skipped or matching_headers is failed
+        - ansible_facts.distribution == "Debian"
+        - provision_profile == "full"
+      environment:
+        DEBIAN_FRONTEND: noninteractive
+        NEEDRESTART_MODE: a
+        APT_LISTCHANGES_FRONTEND: none
+
+    - name: Reset SSH connection after kernel package changes
+      meta: reset_connection
 
     - name: Ensure remote repo directory exists
       file:
         path: "{{ remote_repo_dir }}"
         state: directory
         mode: "0755"
+
+    - name: Install dma-heap access udev rule for libcamera users
+      copy:
+        dest: /etc/udev/rules.d/60-sensorium-dma-heap.rules
+        mode: "0644"
+        content: |
+          SUBSYSTEM=="dma_heap", KERNEL=="*", GROUP="video", MODE="0660"
+
+    - name: Install transport-device udev rules for simulated SPI and UART
+      copy:
+        dest: /etc/udev/rules.d/61-sensorium-transport.rules
+        mode: "0644"
+        content: |
+          KERNEL=="i2c-[0-9]*", GROUP="dialout", MODE="0660"
+          KERNEL=="spidev*", GROUP="dialout", MODE="0660"
+          KERNEL=="ttyAMA*", GROUP="dialout", MODE="0660"
+          KERNEL=="ttyS*", GROUP="dialout", MODE="0660"
+
+    - name: Reload udev rules after dma-heap rule install
+      command: udevadm control --reload
+      changed_when: false
+
+    - name: Apply dma-heap permissions to existing devices
+      shell: |
+        set -euo pipefail
+        udevadm trigger --subsystem-match=dma_heap || true
+        udevadm settle || true
+        if [ -e /dev/dma_heap/system ]; then
+          chgrp video /dev/dma_heap/system
+          chmod 0660 /dev/dma_heap/system
+        fi
+      args:
+        executable: /bin/bash
 
     - name: Check for active kernel build tree
       stat:

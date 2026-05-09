@@ -1,0 +1,21 @@
+[Unit]
+Description=Sensorium runtime daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=SENSORIUM_STATE_DIR=/var/lib/sensorium
+Environment=SENSORIUM_SOCKET_PATH=/run/sensorium/sensoriumd.sock
+Environment=SENSORIUM_PIDFILE_PATH=/run/sensorium/sensoriumd.pid
+EnvironmentFile=-/etc/default/sensoriumd
+WorkingDirectory=/opt/sensorium
+ExecStart=/opt/sensorium/scripts/runtime/sensoriumd --foreground --socket-path ${SENSORIUM_SOCKET_PATH} --pidfile ${SENSORIUM_PIDFILE_PATH}
+Restart=on-failure
+RestartSec=2
+RuntimeDirectory=sensorium
+StateDirectory=sensorium
+LogsDirectory=sensorium
+
+[Install]
+WantedBy=multi-user.target

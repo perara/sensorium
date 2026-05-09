@@ -14,13 +14,13 @@
 Install dependencies:
 
 ```bash
-./scripts/install-deps-ubuntu.sh
+./scripts/local/install-deps-ubuntu.sh
 ```
 
 Build local helper tools:
 
 ```bash
-./scripts/build-libcamera-capture.sh
+./scripts/local/build-libcamera-capture.sh
 ```
 
 Build the module:
@@ -35,21 +35,21 @@ At minimum, run:
 
 ```bash
 make check
-./scripts/build-libcamera-capture.sh
+./scripts/local/build-libcamera-capture.sh
 make module KDIR=/path/to/linux/build
 ```
 
 If you have a configured remote host, also run:
 
 ```bash
-./scripts/remote-cycle.sh
-./scripts/remote-regression.sh
+./scripts/remote/remote-cycle.sh
+./scripts/remote/remote-regression.sh
 ```
 
 For profile-heavy or catalog-wide changes, run:
 
 ```bash
-./scripts/remote-test-all-sensors.sh
+./scripts/remote/remote-test-all-sensors.sh
 ```
 
 ## Style notes

@@ -1,0 +1,20 @@
+name: env-plus-spi
+adapter: iio
+transport: spi
+timing:
+  update_interval_ms: 1000
+faults:
+  mode: none
+registers: {}
+config:
+  transport:
+    device_name: spidev0.0
+  iio:
+    profile: environment-plus
+    temperature_millic: 22350
+    pressure_pascal: 100880
+    humidity_millipercent: 48750
+    temperature_step_millic: 210
+    pressure_step_pascal: 9
+    humidity_step_millipercent: 375
+    temperature_thresh_rising_millic: 24000

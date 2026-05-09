@@ -1,0 +1,131 @@
+name: rpi-multibus
+schema_version: 2
+adapter: runtime
+runtime:
+  buses:
+    - id: i2c-main
+      transport: i2c
+      name: i2c-1
+    - id: spi-main
+      transport: spi
+      name: spi0
+    - id: uart-main
+      transport: uart
+      name: uart0
+  devices:
+    - id: env-bme280
+      bus: i2c-main
+      transport: i2c
+      address: 0x76
+      backend:
+        kind: template
+        template: i2c-register-bank
+        size: 256
+        pointer_width: 1
+        auto_increment: true
+        registers:
+          0x10: 0x23
+          0x20: 0x34
+          0x21: 0x12
+        clear_on_read:
+          - 0x21
+        write_effects:
+          0x10:
+            0x22: 0x99
+    - id: env-bme680
+      bus: i2c-main
+      transport: i2c
+      address: 0x77
+      backend:
+        kind: template
+        template: i2c-register-bank
+        size: 256
+        pointer_width: 1
+        auto_increment: true
+        registers:
+          0x10: 0x45
+          0x30: 0x78
+          0x31: 0x56
+    - id: flash-spi
+      bus: spi-main
+      transport: spi
+      chip_select: 0
+      device_name: spidev0.0
+      settings:
+        mode: 0
+        bits_per_word: 8
+        max_speed_hz: 500000
+      backend:
+        kind: template
+        template: spi-script
+        flash_jedec_id: "ef4018"
+        flash_status_register: 0x1c
+        flash_write_busy_cycles: 2
+        default_response: ""
+        echo: true
+    - id: aux-spi
+      bus: spi-main
+      transport: spi
+      chip_select: 1
+      device_name: spidev0.1
+      settings:
+        mode: 3
+        bits_per_word: 8
+        max_speed_hz: 1000000
+      backend:
+        kind: template
+        template: spi-script
+        responses:
+          "9f0000": "c22018"
+        prefix_responses:
+          "9f": "c22018"
+        default_response: ""
+        echo: true
+    - id: console-uart
+      bus: uart-main
+      transport: uart
+      port_name: ttyAMA0
+      settings:
+        baud_rate: 115200
+        data_bits: 8
+        parity: none
+        stop_bits: 1
+        xonxoff: false
+        rtscts: false
+      backend:
+        kind: template
+        template: uart-script
+        echo: true
+        binary_responses:
+          "0102": "aabb"
+        line_responses:
+          "AT": "OK\r\n"
+        control_defaults:
+          cts: true
+          dsr: true
+          cd: true
+          ri: false
+        cts_follows_rts: true
+        carrier_follows_dtr: true
+    - id: aux-uart
+      bus: uart-main
+      transport: uart
+      port_name: ttyAMA1
+      settings:
+        baud_rate: 57600
+        data_bits: 8
+        parity: none
+        stop_bits: 1
+        xonxoff: false
+        rtscts: false
+      backend:
+        kind: template
+        template: uart-script
+        echo: true
+        line_responses:
+          "ATI": "AUX\r\n"
+        control_defaults:
+          cts: true
+          dsr: true
+          cd: true
+          ri: false

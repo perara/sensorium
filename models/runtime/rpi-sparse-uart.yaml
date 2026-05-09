@@ -1,0 +1,31 @@
+name: rpi-sparse-uart
+schema_version: 2
+adapter: runtime
+runtime:
+  buses:
+    - id: uart-main
+      transport: uart
+      name: uart0
+  devices:
+    - id: console-uart511
+      bus: uart-main
+      transport: uart
+      port_name: ttyAMA511
+      settings:
+        baud_rate: 115200
+        data_bits: 8
+        parity: none
+        stop_bits: 1
+        xonxoff: false
+        rtscts: false
+      backend:
+        kind: template
+        template: uart-script
+        echo: true
+        line_responses:
+          "ATI": "SPARSE\r\n"
+        control_defaults:
+          cts: true
+          dsr: true
+          cd: true
+          ri: false

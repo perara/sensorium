@@ -30,7 +30,7 @@ The IMX backend currently exposes 61 selectable profiles:
 List them directly from the repo:
 
 ```bash
-./scripts/list-sensorium-sensors.sh
+./scripts/runtime/list-sensorium-sensors.sh
 ```
 
 ## Template groups

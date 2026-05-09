@@ -1,0 +1,17 @@
+name: env-uart
+adapter: iio
+transport: uart
+timing:
+  update_interval_ms: 1000
+faults:
+  mode: stale-data
+registers: {}
+config:
+  transport:
+    device_name: ttyAMA0
+  iio:
+    profile: environment-basic
+    temperature_millic: 23000
+    pressure_pascal: 100900
+    temperature_step_millic: 100
+    pressure_step_pascal: 80

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sensorium-runtime"
+dynamic = ["version"]
+description = "Python runtime, control, and validation helpers for Sensorium"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML>=6",
+    "pyserial>=3.5",
+]
+
+[project.scripts]
+sensoriumctl = "sensorium.cli.sensoriumctl:main"
+sensoriumd = "sensorium.cli.sensoriumd:main"
+sensorium-runtime-controller-eeprom = "sensorium.controllers.eeprom:main"
+sensorium-runtime-controller-spi-flash = "sensorium.controllers.spi_flash:main"
+sensorium-runtime-controller-uart-mcu = "sensorium.controllers.uart_mcu:main"
+sensorium-compare-benchmarks = "sensorium.tools.compare_benchmarks:main"
+sensorium-record-benchmark-artifact = "sensorium.tools.record_benchmark_artifact:main"
+sensorium-verify-runtime-abi = "sensorium.tools.verify_runtime_abi:main"
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
