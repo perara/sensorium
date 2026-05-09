@@ -123,7 +123,7 @@ stop_scoped_url_streams() {
 	shopt -s nullglob
 	for pid_file in "${sensorium_repo_root}"/.cache/url-stream-*.pid; do
 		[[ -f "${pid_file}" ]] || continue
-		stream_pid="$(<"${pid_file}" 2>/dev/null || true)"
+		stream_pid="$(cat "${pid_file}" 2>/dev/null || true)"
 		if [[ ! "${stream_pid}" =~ ^[0-9]+$ ]]; then
 			rm -f "${pid_file}"
 			continue
@@ -221,7 +221,7 @@ collect_targeted_devices() {
 }
 
 evict_device_holders() {
-	local force="${1:-${force_evict}}"
+	local force="${force_evict}"
 	local device
 	local pid
 	local cmdline
@@ -261,7 +261,7 @@ evict_device_holders() {
 			echo "Refusing to evict non-Sensorium holder PID ${pid} on ${device}: ${cmdline}" >&2
 			unknown_holders=1
 		done < <(
-			run_root bash -lc 'fuser -a -- "$1" 2>/dev/null || true' _ "${device}" | \
+			{ run_root fuser -a -- "${device}" 2>/dev/null || true; } | \
 				tr ' ' '\n' | sed 's/://g' | awk '/^[0-9]+$/'
 		)
 	done < <(collect_targeted_devices)
