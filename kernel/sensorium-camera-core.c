@@ -1,7 +1,15 @@
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/math64.h>
+#ifdef __has_include
+#if __has_include(<linux/unaligned.h>)
 #include <linux/unaligned.h>
+#else
+#include <asm/unaligned.h>
+#endif
+#else
+#include <asm/unaligned.h>
+#endif
 #include "sensorium.h"
 
 struct sensorium_ingress_format {
