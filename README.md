@@ -7,6 +7,10 @@ Its scope is Linux interface fidelity for downstream software. It is not a
 hardware-accurate emulator of electrical behavior, cycle timing, or internal
 silicon state machines.
 
+License notice: this project is source-available for non-commercial use only
+under the PolyForm Noncommercial License 1.0.0. Commercial use requires a
+separate commercial license from the project owner.
+
 The current implementation ships:
 
 - a camera adapter with the existing Sony IMX family backend
@@ -985,5 +989,17 @@ make package-meta
 
 ## License
 
-This repository is licensed under the GNU General Public License v2. See
-[LICENSE](LICENSE).
+This repository is licensed for non-commercial use only under the PolyForm
+Noncommercial License 1.0.0. See [LICENSE](LICENSE) for the full terms.
+
+Allowed use under the repository license includes non-commercial research,
+testing, evaluation, education, hobby work, and other non-commercial purposes
+covered by the license.
+
+Commercial use, commercial redistribution, commercial product integration,
+hosted commercial services, or use for a commercial customer's benefit requires
+a separate commercial license from the project owner.
+
+The Linux kernel module keeps `MODULE_LICENSE("GPL")` as a kernel loader and
+GPL-only-symbol compatibility declaration. That kernel metadata does not replace
+the repository-level PolyForm Noncommercial license for this project.

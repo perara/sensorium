@@ -7,10 +7,14 @@ name = "sensorium-runtime"
 dynamic = ["version"]
 description = "Python runtime, control, and validation helpers for Sensorium"
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.10"
 dependencies = [
     "PyYAML>=6",
     "pyserial>=3.5",
+]
+classifiers = [
+    "License :: Other/Proprietary License",
 ]
 
 [project.scripts]

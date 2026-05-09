@@ -105,6 +105,33 @@ if rg -n "imx708-sim|sony-imx-sim|camera-mock-drivers" . \
 	exit 1
 fi
 
+echo "Checking license metadata..."
+if ! rg -q "PolyForm Noncommercial License 1.0.0" LICENSE; then
+	echo "LICENSE is not the expected PolyForm Noncommercial 1.0.0 text." >&2
+	exit 1
+fi
+if ! rg -q "PolyForm" README.md || ! rg -q "Noncommercial License 1.0.0" README.md; then
+	echo "README.md does not advertise the non-commercial license." >&2
+	exit 1
+fi
+if ! rg -q "license = \\{file = \"LICENSE\"\\}" pyproject.toml; then
+	echo "pyproject.toml does not point package metadata at LICENSE." >&2
+	exit 1
+fi
+if ! rg -q "custom:PolyForm-Noncommercial-1.0.0" packaging/arch/PKGBUILD; then
+	echo "Arch package metadata does not use the non-commercial license id." >&2
+	exit 1
+fi
+if ! rg -q "PolyForm-Noncommercial-1.0.0" packaging/alpine/APKBUILD; then
+	echo "Alpine package metadata does not use the non-commercial license id." >&2
+	exit 1
+fi
+if rg -n "GNU General Public License v2|GPL-2\\.0-only|license=\\('GPL2'\\)|license=\"GPL-2\\.0-only\"" \
+	README.md docs packaging pyproject.toml; then
+	echo "Found stale GPL project/package license metadata." >&2
+	exit 1
+fi
+
 echo "Checking required top-level files..."
 required_files=(
 	README.md
