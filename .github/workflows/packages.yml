@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install source packaging tools
         run: |
@@ -29,7 +29,7 @@ jobs:
         run: make dist
 
       - name: Upload source tarball
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sensorium-source
           path: dist/sensorium-*.tar.gz
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Debian packaging tools
         run: |
@@ -49,7 +49,7 @@ jobs:
         run: make package-deb
 
       - name: Upload Debian package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sensorium-deb
           path: dist/deb/*.deb
@@ -65,7 +65,7 @@ jobs:
           apk update
           apk add alpine-sdk bash git rsync tar
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Render package templates and dist tarball
         run: make dist package-meta
@@ -93,7 +93,7 @@ jobs:
           fi
 
       - name: Upload Alpine package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sensorium-apk
           path: /home/builder/packages/**/*.apk
@@ -107,7 +107,7 @@ jobs:
       - name: Install build tools
         run: pacman -Syu --noconfirm git python rsync tar
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Render package templates and dist tarball
         run: make dist package-meta
@@ -126,7 +126,7 @@ jobs:
           fi
 
       - name: Upload Arch package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sensorium-arch
           path: /home/builder/pkgsrc/*.pkg.tar.*
@@ -143,12 +143,12 @@ jobs:
       contents: write
     steps:
       - name: Download packaged artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-artifacts
 
       - name: Publish GitHub release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             release-artifacts/sensorium-source/**
