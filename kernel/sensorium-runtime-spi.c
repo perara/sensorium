@@ -257,8 +257,6 @@ int sensorium_runtime_register_spi(struct sensorium_runtime_device *dev)
 	(LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 80) && \
 	 LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0))
 	ret = device_set_driver_override(&spi->dev, "spidev");
-#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
-	ret = device_set_driver_override(&spi->dev, "spidev");
 #else
 	ret = driver_set_override(&spi->dev, &spi->driver_override,
 				 "spidev", strlen("spidev"));
