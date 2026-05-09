@@ -108,11 +108,26 @@ libcamera version, command, and result for each row.
 | Source tarball | `make dist` and inspect `dist/sensorium-*.tar.gz` for generated artifacts | yes |
 | Debian package | `make package-deb` and inspect `dist/deb/*.deb` contents | yes |
 | Package metadata | `make package-meta` | yes |
+| Fresh package install | install `dist/deb/*.deb`, apply a runtime model, and list runtime devices | yes for distribution releases |
 | Production host baseline | `./scripts/local/check-production-host-baseline.sh --profile full --strict` | yes on deployment class hosts |
 | QEMU smoke | `./scripts/qemu/qemu-ci-smoke.sh` | yes when QEMU is part of support evidence |
+| QEMU e2e | `./scripts/qemu/qemu-e2e.sh` | yes when claiming full VM e2e support |
+| Kernel-major-7 QEMU | `make qemu-linux7-ci-smoke` or `make qemu-linux7-e2e` | yes when claiming current kernel-7 support |
 | Remote regression | `./scripts/remote/remote-regression.sh` | yes on the controlled deployment class host |
 | Benchmark evidence | `./scripts/qemu/qemu-benchmark-matrix.sh` or `./scripts/remote/remote-benchmark-matrix.sh` | yes for performance-sensitive releases |
 
 Benchmark artifacts default to `.cache/benchmarks/` unless
 `SENSORIUM_BENCHMARK_DIR` is set. `benchmark-check.sh` skips gracefully when no
 baseline exists unless `BENCHMARK_REQUIRE_BASELINE=1` is set.
+
+Record exact platform evidence alongside that matrix:
+
+| Field | Example |
+| --- | --- |
+| Host / environment | Debian trixie QEMU genericcloud, controlled remote host, WSL2 dev host |
+| Kernel | `uname -r`, for example `7.0.4+deb14-amd64` |
+| Kernel source/build tree | `/lib/modules/$(uname -r)/build` or explicit `KDIR` |
+| Git revision | `git rev-parse HEAD` |
+| Dirty state | `git status --short` |
+| libcamera version | required for camera validation evidence |
+| Command and result | exact command, exit status, and artifact path where applicable |
